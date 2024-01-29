@@ -45,6 +45,7 @@ ROOT = Path(os.path.relpath(ROOT, Path.cwd()))  # relative
 
 from ultralytics.utils.plotting import Annotator, colors, save_one_box
 
+from utils.plots import save_one_frame
 from models.common import DetectMultiBackend
 from utils.dataloaders import IMG_FORMATS, VID_FORMATS, LoadImages, LoadScreenshots, LoadStreams
 from utils.general import (
@@ -84,6 +85,7 @@ def run(
     nosave=False,  # do not save images/videos
     save_all_frames=False,  # save frames from video
     save_detected_frames=False,  # save frame from video when object detected
+    save_each_n_frames=1, # saving frames frequency, 1 saves all frames, higher means less saved frames ex.: 1,2,3
     classes=None,  # filter by class: --class 0, or --class 0 2 3
     agnostic_nms=False,  # class-agnostic NMS
     augment=False,  # augmented inference

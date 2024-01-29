@@ -83,6 +83,7 @@ def run(
     save_crop=False,  # save cropped prediction boxes
     nosave=False,  # do not save images/videos
     save_all_frames=False,  # save frames from video
+    save_detected_frames=False,  # save frame from video when object detected
     classes=None,  # filter by class: --class 0, or --class 0 2 3
     agnostic_nms=False,  # class-agnostic NMS
     augment=False,  # augmented inference
@@ -217,12 +218,16 @@ def run(
                         with open(f"{txt_path}.txt", "a") as f:
                             f.write(("%g " * len(line)).rstrip() % line + "\n")
 
-                    if save_img or save_crop or view_img:  # Add bbox to image
+                    if save_img or save_crop or view_img or save_all_frames or save_detected_frames:  # Add bbox to image
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                         annotator.box_label(xyxy, label, color=colors(c, True))
                     if save_crop:
                         save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
+                
+                if save_detected_frame and not save_all_frames:
+                    save_one_frame(annotator.result(), file=save_dir / "frames" / f"{frame_index}.png")
+                    frame_index += 1
 
             # Stream results
             im0 = annotator.result()
@@ -286,7 +291,10 @@ def parse_opt():
     parser.add_argument("--save-conf", action="store_true", help="save confidences in --save-txt labels")
     parser.add_argument("--save-crop", action="store_true", help="save cropped prediction boxes")
     parser.add_argument("--nosave", action="store_true", help="do not save images/videos")
-    parser.add_argument("--save-all-frames", action="store_true", help="save frames as png on frames folder")
+    parser.add_argument("--save-all-frames", action="store_true", help="save frames as png to frames folder")
+    parser.add_argument("--save-detected-frames", action="store_true",
+        help="save frame with detection as png to frames folder"
+    )
     parser.add_argument("--classes", nargs="+", type=int, help="filter by class: --classes 0, or --classes 0 2 3")
     parser.add_argument("--agnostic-nms", action="store_true", help="class-agnostic NMS")
     parser.add_argument("--augment", action="store_true", help="augmented inference")

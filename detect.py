@@ -132,8 +132,8 @@ def run(
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
     
-    # First frame will always be saved, max saving frequency is forced to 1000.
-    frames_since_last_saved = max(1, min(save_each_n_frames, 1000))
+    # First frame will always be saved.
+    frames_since_last_saved = save_each_n_frames
     
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup

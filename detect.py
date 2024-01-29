@@ -131,7 +131,10 @@ def run(
     else:
         dataset = LoadImages(source, img_size=imgsz, stride=stride, auto=pt, vid_stride=vid_stride)
     vid_path, vid_writer = [None] * bs, [None] * bs
-
+    
+    # First frame will always be saved, max saving frequency is forced to 1000.
+    frames_since_last_saved = max(1, min(save_each_n_frames, 1000))
+    
     # Run inference
     model.warmup(imgsz=(1 if pt or model.triton else bs, 3, *imgsz))  # warmup
     seen, windows, dt = 0, [], (Profile(device=device), Profile(device=device), Profile(device=device))
@@ -220,14 +223,15 @@ def run(
                         with open(f"{txt_path}.txt", "a") as f:
                             f.write(("%g " * len(line)).rstrip() % line + "\n")
 
-                    if save_img or save_crop or view_img or save_all_frames or save_detected_frames:  # Add bbox to image
+                    if (save_img or save_crop or view_img or save_all_frames or save_detected_frames) and (frames_since_last_saved == save_each_n_frames):  # Add bbox to image
                         c = int(cls)  # integer class
                         label = None if hide_labels else (names[c] if hide_conf else f"{names[c]} {conf:.2f}")
                         annotator.box_label(xyxy, label, color=colors(c, True))
-                    if save_crop:
+                        
+                    if save_crop and (frames_since_last_saved == save_each_n_frames):
                         save_one_box(xyxy, imc, file=save_dir / "crops" / names[c] / f"{p.stem}.jpg", BGR=True)
                 
-                if save_detected_frame and not save_all_frames:
+                if (save_detected_frame and not save_all_frames) and (frames_since_last_saved == save_each_n_frames):
                     save_one_frame(annotator.result(), file=save_dir / "frames" / f"{frame_index}.png")
                     frame_index += 1
 
@@ -260,10 +264,15 @@ def run(
                         vid_writer[i] = cv2.VideoWriter(save_path, cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
                     vid_writer[i].write(im0)
                     
-            if save_all_frames:
+            if save_all_frames and (frames_since_last_saved == save_each_n_frames):
                 save_one_frame(im0, file=save_dir / "frames" / f"{frame_index}.png")
                 frame_index += 1
-                
+
+        # Counting frames to know when to save them on --save-crops-each-n-frames arg
+        if frames_since_last_saved == save_each_n_frames:
+            frames_since_last_saved = 0
+        frames_since_last_saved += 1
+        
         # Print time (inference-only)
         LOGGER.info(f"{s}{'' if len(det) else '(no detections), '}{dt[1].dt * 1E3:.1f}ms")
 
